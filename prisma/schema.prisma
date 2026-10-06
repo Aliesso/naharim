@@ -6,10 +6,8 @@ generator client {
 }
 
 datasource db {
-  provider  = "postgresql"
-  // Neon/Vercel Postgres: pooled bağlantı tətbiq üçün, birbaşa bağlantı miqrasiyalar üçün
-  url       = env("DATABASE_URL")
-  directUrl = env("DATABASE_URL_UNPOOLED")
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 model User {

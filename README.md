@@ -37,7 +37,7 @@ PostgreSQL bazası lazımdır (pulsuz: [Neon](https://neon.tech) və ya Vercel �
 
 ```bash
 npm install
-cp .env.example .env       # DATABASE_URL, DATABASE_URL_UNPOOLED, SESSION_SECRET
+cp .env.example .env       # DATABASE_URL, SESSION_SECRET
 npm run db:deploy          # miqrasiyaları tətbiq edir
 npm run db:seed            # demo məlumatlar (DİQQƏT: bazadakı bütün məlumatları silir)
 npm run dev                # http://localhost:3000
@@ -50,10 +50,12 @@ Sxemi dəyişdikdən sonra yeni miqrasiya: `npm run db:migrate`.
 
 ## Vercel-ə deploy
 
-1. Vercel → layihə → **Storage** → Neon Postgres yaradın və layihəyə bağlayın (`DATABASE_URL` və `DATABASE_URL_UNPOOLED` avtomatik əlavə olunur).
+1. Vercel → layihə → **Storage** → Neon Postgres yaradın və layihəyə bağlayın (`DATABASE_URL` avtomatik əlavə olunur).
 2. **Settings → Environment Variables**: `SESSION_SECRET` əlavə edin (32+ simvol).
 3. Redeploy. `vercel-build` skripti miqrasiyaları özü tətbiq edir.
 4. Demo məlumat üçün bir dəfə lokalda production bazası ilə `npm run db:seed` işlədin.
+
+> `DATABASE_URL` adi `postgresql://` (və ya `postgres://`) bağlantısı olmalıdır. Provayder `prisma+postgres://` verirsə, onun yerinə birbaşa Postgres URL-ni (adətən `POSTGRES_URL`) yazın.
 
 ### Demo hesablar (şifrə: `demo1234`)
 
