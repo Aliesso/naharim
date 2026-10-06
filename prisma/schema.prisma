@@ -1,0 +1,152 @@
+// Naharim — korporativ nahar endirimi platforması
+// Rollar/statuslar String kimi saxlanılır (bax: src/lib/constants.ts)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  // Neon/Vercel Postgres: pooled bağlantı tətbiq üçün, birbaşa bağlantı miqrasiyalar üçün
+  url       = env("DATABASE_URL")
+  directUrl = env("DATABASE_URL_UNPOOLED")
+}
+
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  phone        String?
+  passwordHash String
+  // USER | COMPANY_ADMIN | RESTAURANT | ADMIN
+  role         String   @default("USER")
+  createdAt    DateTime @default(now())
+
+  companyId    String?
+  company      Company?    @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  restaurantId String?
+  restaurant   Restaurant? @relation("RestaurantStaff", fields: [restaurantId], references: [id], onDelete: SetNull)
+
+  subscriptions Subscription[]
+  vouchers      Voucher[]
+}
+
+model Plan {
+  id              String   @id @default(cuid())
+  slug            String   @unique
+  name            String
+  description     String
+  // INDIVIDUAL | CORPORATE
+  type            String
+  // Aylıq qiymət (AZN). Korporativ planlarda bir işçi üçün.
+  priceMonthly    Float
+  discountPercent Int
+  // Gündə neçə endirimli nahar
+  dailyLimit      Int      @default(1)
+  active          Boolean  @default(true)
+  sortOrder       Int      @default(0)
+
+  subscriptions Subscription[]
+  companies     Company[]
+}
+
+model Subscription {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  planId    String
+  plan      Plan     @relation(fields: [planId], references: [id])
+  // INDIVIDUAL | COMPANY
+  source    String
+  companyId String?
+  company   Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  // ACTIVE | CANCELLED | EXPIRED
+  status    String   @default("ACTIVE")
+  startsAt  DateTime @default(now())
+  endsAt    DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId, status])
+}
+
+model Company {
+  id            String   @id @default(cuid())
+  name          String
+  voen          String   @unique
+  contactName   String
+  contactEmail  String
+  contactPhone  String
+  employeeLimit Int
+  inviteCode    String   @unique
+  planId        String
+  plan          Plan     @relation(fields: [planId], references: [id])
+  // Müqavilə
+  contractNo    String   @unique
+  contractStart DateTime
+  contractEnd   DateTime
+  // ACTIVE | SUSPENDED | ENDED
+  status        String   @default("ACTIVE")
+  createdAt     DateTime @default(now())
+
+  employees     User[]
+  subscriptions Subscription[]
+}
+
+model CompanyRequest {
+  id            String   @id @default(cuid())
+  companyName   String
+  voen          String
+  contactName   String
+  contactEmail  String
+  contactPhone  String
+  employeeCount Int
+  message       String?
+  // NEW | APPROVED | REJECTED
+  status        String   @default("NEW")
+  createdAt     DateTime @default(now())
+}
+
+model Restaurant {
+  id              String   @id @default(cuid())
+  slug            String   @unique
+  name            String
+  description     String
+  cuisine         String
+  district        String
+  address         String
+  phone           String
+  imageUrl        String?
+  // "HH:mm" formatında, Bakı vaxtı ilə
+  lunchStart      String   @default("12:00")
+  lunchEnd        String   @default("15:00")
+  // Restoranın verdiyi endirim; planın endirimi ilə müqayisədə hansı böyükdürsə tətbiq olunur
+  discountPercent Int
+  // Bazar ertəsi=1 ... Bazar=7, vergüllə: "1,2,3,4,5"
+  workDays        String   @default("1,2,3,4,5")
+  active          Boolean  @default(true)
+  createdAt       DateTime @default(now())
+
+  staff    User[]    @relation("RestaurantStaff")
+  vouchers Voucher[]
+}
+
+// Endirim kuponu — istifadəçi restoranda yaradır, restoran işçisi kodu təsdiqləyir
+model Voucher {
+  id              String     @id @default(cuid())
+  code            String     @unique
+  userId          String
+  user            User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  restaurantId    String
+  restaurant      Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  discountPercent Int
+  // ACTIVE | USED | EXPIRED
+  status          String     @default("ACTIVE")
+  createdAt       DateTime   @default(now())
+  expiresAt       DateTime
+  usedAt          DateTime?
+  billAmount      Float?
+  discountAmount  Float?
+
+  @@index([userId, createdAt])
+  @@index([restaurantId, status])
+}
